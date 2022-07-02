@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>three.js 青花瓷</title>
+    <script src="js/vue.js"></script>
+    <script src="js/three.js"></script>
+    <script src="js/OrbitControls.js"></script>
+    <script src="js/OBJLoader.js"></script>
+    <!--element UI-->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!--animate.css-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        * {
+            padding: 0;
+            margin: 0;
+        }
+        body {
+            /*background-color: #075465;*/
+            background: url("images/背景图片.jpeg");
+            background-size: cover;
+
+        }
+        h1 {
+            position: absolute;
+            left: 42%;
+            top: 20px;
+            transform: translateX(-50%);
+            font-size: 40px;
+            height: 60px;
+            line-height: 60px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #000000;
+        }
+        .changeModel {
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%);
+            top: 600px;
+        }
+        #show {
+            height: 650px;
+        }
+        #showInfo {
+            /*position: fixed;*/
+            width: 320px;
+            height: 450px;
+            /*background-color: #019efc;*/
+            position: absolute;
+            left: 50%;
+            transform: translate(-50%);
+            top: 110px;
+
+            line-height: 30px;
+            color: #ffffff;
+            background: url("images/背景图片2.jpg") no-repeat;
+            background-size: cover ;
+            color: #000000;
+            font-size: 12px;
+            text-indent: 2em;
+        }
+        #showInfo section {
+            margin-top: 50px;
+            margin-left: 20px;
+            margin-right: 30px;
+        }
+        #showInfo button {
+            margin-top: 15px;
+            margin-left: 115px;
+        }
+        .menu {
+            position: fixed;
+            right: 70px;
+            top: 85px;
+            width: 400px;
+            height: 464px;
+            background-color: #ffffff;
+            border: 1px solid #408ac7;
+            padding: 20px 20px;
+        }
+
+        h2 {
+            text-align: center;
+            font-size: 26px;
+        }
+
+
+
+    </style>
+</head>
+<body>
+<h1 class="animate__animated animate__backInDown">three.js 青花瓷</h1>
+<div id="app">
+    <el-button type="primary" @click="showMenu" class="changeModel" v-show="!isShow">修改模型</el-button>
+    <!--显示canvas-->
+    <div id="show">
+    </div>
+    <transition enter-active-class="animate__animated animate__fadeIn" leave-active-class="animate__animated animate__fadeOut">
+        <div id="showInfo" v-show="showInfo">
+            <section>
+                <p>
+                    青花瓷又称白地青花瓷，常简称青花，中华陶瓷烧制工艺的珍品，是中国瓷器的主流品种之一，
+                    属釉下彩瓷。青花瓷具有洁白的瓷胎和纯净的透明釉，以及钴料作用下的蓝色图案花纹，
+                    在匠人的彩绘技术下更具魅力。
+                </p>
+                <p>
+                    青花瓷融合了中国画的山水意境，吸收了古典艺术的文化内涵，再加上中西方的文化交流，这些都使得
+                    青花瓷的内在底蕴越发深厚，并逐渐风靡大江南北长城内外，被社会各层广泛接受，最终成为了“国民瓷器”
+                    ，在历史的长河中留下了浓墨重彩的一笔。
+                </p>
+            </section>
+            <el-button @click="showInfo = false" type="primary">知道了</el-button>
+        </div>
+    </transition>
+    <!--交互界面-->
+    <transition enter-active-class="animate__animated animate__bounceInRight" leave-active-class="animate__animated animate__bounceOutRight">
+        <div class="menu" v-if="isShow">
+            <h2>模型设置</h2>
+
+            <div class="block">
+                <span class="demonstration">模型大小</span>
+                <el-slider v-model="modelSize" :min="0" :max="2" @change="changeSize" :step="0.1"></el-slider>
+            </div>
+            <div class="block">
+                <span class="demonstration">模型位置</span><br>
+                <div style="margin-top: 4px;">
+                    x :<el-slider v-model="x" :min="-5" :max="5" @change="moveX"></el-slider>
+                    y :<el-slider v-model="y" :min="-5" :max="5" @change="moveY"></el-slider>
+                    z :<el-slider v-model="z" :min="-5" :max="5" @change="moveZ"></el-slider>
+                </div>
+            </div>
+            <div>
+                <el-checkbox v-model="checked" @change="autoRotate" style="font-size: 18px;">自动旋转</el-checkbox>
+            </div>
+            <div style="margin-top: 4px;">
+                模型颜色：<el-color-picker v-model="color" @change="changeColor"></el-color-picker>
+            </div>
+            <div style="margin-top: 4px;">
+                模型贴图：
+                <el-button plain @click="changeTexture1">贴图1</el-button>
+                <el-button plain @click="changeTexture2">贴图2</el-button>
+                <el-button plain @click="changeTexture3">贴图3</el-button>
+            </div>
+            <div>
+                <el-button type="primary" round @click="closeMenu" style="margin-left: 150px; margin-top:20px;">关闭界面</el-button>
+            </div>
+        </div>
+    </transition>
+
+</div>
+</body>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                width: 0,             //canvas的宽度
+                height: 0,            //canvas的高度
+                scene: null,          //场景
+                camera: null,         //摄像机
+                light: null,          //灯光
+                renderer: null,       //渲染器
+                model: null,          //模型
+                cube: null,           //立方体(测试)
+                orbitControls: null,  //鼠标控制器
+                objLoader: null,      //obj模型加载器
+                textureLoader: null,  //贴图加载器
+                texture1: null,       //贴图1
+                texture2: null,       //贴图2
+                texture3: null,       //贴图3
+                isShow: false,        //是否打开设置界面
+                color: '#ffffff',    //模型初始颜色
+                modelSize: 1,          //模型的大小
+                x: 0,                  //x
+                y: 0,                  //y
+                z: 0,                  //z
+                checked: false,        //单选框
+                showInfo: false       //显示介绍信息
+            }
+        },
+        mounted() {
+            //初始化场景
+            this.initScene();
+            //加载一个Cube(测试)
+            // this.loadCube();
+            //逐帧渲染
+            this.requetRender();
+            //初始化加载器
+            this.initLoader();
+            //加载模型
+            this.loadModel();
+            //模型自动旋转
+            // this.autoRotate();
+            //初始化贴图
+            this.initTexture();
+            //射线检测
+            document.addEventListener('mousedown', this.onDocumentMouseDown, false);
+        },
+        methods: {
+            //初始化场景
+            initScene() {
+                //场景
+                this.scene = new THREE.Scene();
+                //照相机
+                this.width = document.querySelector('#show').clientWidth;
+                this.height = document.querySelector('#show').clientHeight;
+                this.camera = new THREE.PerspectiveCamera(75, this.width / this.height, 0.1,1000);
+                this.camera.position.set(0,0,10);
+                this.camera.lookAt(0,0,0);
+
+                //灯光
+                this.light = new THREE.AmbientLight(0xffffff);
+                this.scene.add(this.light);
+                //渲染器
+                this.renderer = new THREE.WebGLRenderer({
+                    antialias: true, //开启锯齿
+                    alpha: true//透明度，这个属性至关重要
+                });
+                this.renderer.setClearAlpha(0.0);
+                this.renderer.setSize(this.width, this.height);
+                // this.renderer.setClearColor(0x075465);
+                this.orbitControls = new THREE.OrbitControls(this.camera,this.renderer.domElement);
+                document.querySelector('#show').appendChild(this.renderer.domElement);
+            },
+            //加载一个cube（前期测试）
+            loadCube() {
+                var geomerty = new THREE.BoxGeometry(2,2,2);
+                var material=  new THREE.MeshNormalMaterial();
+                this.cube = new THREE.Mesh(geomerty, material);
+                this.cube.position.set(0,0,0);
+                this.scene.add(this.cube);
+            },
+            //初始化贴图
+            initTexture() {
+                this.texture1 = this.textureLoader.load('images/texture1.jpg');
+                this.texture2 = this.textureLoader.load('images/texture2.jpg');
+                this.texture3 = this.textureLoader.load('images/texture3.jpg');
+            },
+            //逐帧渲染
+            requetRender() {
+                this.orbitControls.update();
+                this.renderer.render(this.scene, this.camera);
+
+                requestAnimationFrame(this.requetRender);
+            },
+            //初始化加载器
+            initLoader() {
+                this.objLoader = new THREE.OBJLoader();
+                this.textureLoader = new THREE.TextureLoader();
+
+            },
+            //加载模型（瓷器）
+            loadModel() {
+                this.objLoader.load('./model/model.obj', (obj)=> {
+                    obj.name = 'model';
+                    obj.children[0].material.map = this.texture1;
+                    obj.position.set(0,0,0);
+                    obj.scale.set(0.01,0.01,0.01);
+                    this.model = obj;
+                    this.scene.add(this.model);
+                })
+
+            },
+            showMenu() {
+                this.isShow  = true;
+                this.renderer.setSize(800,600);
+                this.camera.aspect = 800 / 600;
+                this.camera.updateProjectionMatrix();
+                this.renderer.render(this.scene, this.camera);
+                //修改模型大小
+                this.model.scale.set(0.013,0.013,0.013);
+
+            },
+            closeMenu() {
+                this.isShow  = false;
+                this.renderer.setSize(1536,650);
+                this.camera.aspect = 1536 / 650;
+                this.camera.updateProjectionMatrix();
+                this.x = 0;
+                this.y = 0;
+                this.z = 0;
+                this.model.position.x = this.x;
+                this.model.position.y = this.y;
+                this.model.position.z = this.z;
+                this.renderer.render(this.scene, this.camera);
+            },
+            //修改贴图1
+            changeTexture1() {
+                this.model.children[0].material.map = this.texture1;
+            },
+            //修改贴图2
+            changeTexture2() {
+                this.model.children[0].material.map = this.texture2;
+            },
+            changeTexture3() {
+                this.model.children[0].material.map = this.texture3;
+            },
+            //修改颜色
+            changeColor() {
+                this.model.children[0].material.color.set(this.color);
+            },
+            //修改大小
+            changeSize() {
+                this.model.children[0].scale.set(this.modelSize, this.modelSize, this.modelSize);
+            },
+            moveX() {
+                this.model.position.x = this.x;
+            },
+            moveY() {
+                this.model.position.y = this.y;
+            },
+            moveZ() {
+                this.model.position.z = this.z;
+            },
+            autoRotate() {
+                // this.checked = this.checked;
+                //模型自动旋转
+                // console.log(this.model)
+                if(this.checked) {
+                    this.model.children[0].geometry.rotateY(0.1);
+                    requestAnimationFrame(this.autoRotate);
+                }else  {
+
+                    cancelAnimationFrame(this.autoRotate());
+                }
+            },
+            //鼠标点击 射线检测
+            onDocumentMouseDown(event) {
+                if(this.isShow) {
+                    var canvas = this.renderer.domElement;
+                    let getBoundingClientRect = canvas.getBoundingClientRect()
+                    // 屏幕坐标转标准设备坐标
+                    let x = ((event.clientX - getBoundingClientRect .left) / canvas.offsetWidth) * 2 - 1;// 标准设备横坐标
+                    let y = -((event.clientY - getBoundingClientRect .top) / canvas.offsetHeight) * 2 + 1;// 标准设备纵坐标
+                    let standardVector = new THREE.Vector3(x, y, 1);// 标准设备坐标
+                    // 标准设备坐标转世界坐标
+                    let worldVector = standardVector.unproject(this.camera);
+                    // 射线投射方向单位向量(worldVector坐标减相机位置坐标)
+                    let ray = worldVector.sub(this.camera.position).normalize();
+                    // 创建射线投射器对象
+                    let rayCaster = new THREE.Raycaster(this.camera.position, ray);
+                    // 返回射线选中的对象 第二个参数如果不填 默认是false
+                    let intersects = rayCaster.intersectObjects(this.scene.children, true);
+                    if (intersects.length > 0) {
+                        this.showInfo = true;
+                    }
+
+                }
+
+            }
+        }
+    })
+</script>
+</html>
